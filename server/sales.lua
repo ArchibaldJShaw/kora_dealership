@@ -148,7 +148,7 @@ local function confirmSale(src, dealer, index, customer, model, price)
     if busy[src] == lock then busy[src] = nil end
 
     if not ok then
-        print(('[kora_dealership] sale error for %s: %s'):format(src, tostring(result)))
+        Kora.logging.error('sale.failed', 'Sale raised an error', { playerId = src, error = tostring(result) })
         return fn.fail(Kora.lang('s.errors.sale_failed'))
     end
     return result, message

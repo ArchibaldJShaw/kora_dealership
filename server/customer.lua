@@ -1,4 +1,4 @@
-Kora.print.debug('kora_dealership server/customer.lua loaded.')
+Kora.logging.debug('boot.customer_loaded', 'server/customer.lua loaded')
 local testDrives = {}
 
 local function endTestDrive(src)
@@ -11,7 +11,7 @@ local function endTestDrive(src)
     if data.plate then
         local ok, err = pcall(function() return exports.kora_vehiclekeys:removeKeys(src, data.plate) end)
         if not ok then
-            print(('[kora_dealership] could not revoke test-drive keys for %s: %s'):format(data.plate, tostring(err)))
+            Kora.logging.warn('test_drive.revoke_keys_failed', 'Could not revoke test-drive keys', { plate = data.plate, error = tostring(err) })
         end
     end
 end

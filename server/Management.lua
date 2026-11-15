@@ -435,7 +435,7 @@ local function autoAcceptLoop()
     while true do
         Wait(math.max(10, tonumber(Config.autoConfirmCheckSeconds) or 60) * 1000)
         local ok, err = pcall(processDueOffers)
-        if not ok then print(('^1[kora_dealership] auto-accept failed: %s^7'):format(tostring(err))) end
+        if not ok then Kora.logging.error('offers.auto_accept_failed', 'Auto-accepting due offers failed', { error = tostring(err) }) end
     end
 end
 

@@ -1,10 +1,11 @@
 -- Run from the resource root: lua test/purchased_event.lua
+local spy = dofile('test/logging_spy.lua')
 local events, keys = {}, {}
 CreateThread = function() end
 AddEventHandler = function() end
 Config = { spawnClearance = 3.0, offerVehicleState = 'garaged' }
 Kora = {
-    print = { debug = function() end },
+    logging = spy.logging,
     sql = {
         query = function() return {} end,
         transaction = function() return true end,
@@ -36,6 +37,18 @@ created = false
 assert(fn.deliverVehicle(2, 'sultan', { coords = {} }) == nil and #events == 0, 'failed deliveries emit nothing')
 Kora.sql.transaction = function() return false end
 assert(fn.deliverVehicle('CID2', 'adder') == nil and #events == 0, 'failed inserts emit nothing')
+
+-- A failing purchase-event handler is reported through the logger as an error carrying the cause.
+spy.calls = {}
+created = true
+Kora.sql.transaction = function() return true end
+TriggerEvent = function() error('boom') end
+assert(fn.deliverVehicle('CID2', 'adder') == true)
+local failed = spy.find('sale.purchase_event_failed')
+assert(failed and failed.level == 'error', 'purchase event failure must log at error level')
+assert(type(failed.fields) == 'table' and tostring(failed.fields.error):find('boom', 1, true), 'fields carry the error')
+assert(not failed.message:find('%['), 'message has no resource prefix')
+TriggerEvent = function(name, ...) events[#events + 1] = { name = name, args = { ... } } end
 
 local function resume(thread)
     local ok, result = coroutine.resume(thread)

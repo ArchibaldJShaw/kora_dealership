@@ -176,7 +176,7 @@ function fn.keepTargetZones(options)
             if ok and zoneId then
                 zoneIds[dealer][#zoneIds[dealer] + 1] = zoneId
             elseif not ok then
-                print(('[kora_dealership] could not add a "%s" target: %s'):format(options.label, tostring(zoneId)))
+                Kora.logging.warn('target.add_failed', 'Could not add a dealership target', { label = tostring(options.label), error = tostring(zoneId) })
             end
         end
     end
