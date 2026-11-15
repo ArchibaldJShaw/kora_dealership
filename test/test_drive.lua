@@ -6,7 +6,7 @@ local grantMode = 'success'
 Config = { testBucketBase = 100000, testDriveSeconds = 120, rateLimits = {}, testSpawn = {} }
 Dealerships = { shop = {} }
 Kora = {
-    print = { debug = function() end },
+    logging = dofile('test/logging_spy.lua').logging,
     lang = function(key) return key end,
     callback = { register = function(name, handler) callbacks[name] = handler end },
 }

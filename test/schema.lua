@@ -23,7 +23,7 @@ function CreateThread(action) boot = action end
 function AddEventHandler() end
 Config = { UsePDM = true }
 GlobalState = {}
-Kora.print = { debug = function() end }
+Kora.logging = dofile('test/logging_spy.lua').logging
 Kora.sql.ready = function() return true end
 Kora.sql.ensureTables = function() return {} end
 local tablesReady = false

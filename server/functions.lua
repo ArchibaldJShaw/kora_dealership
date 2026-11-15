@@ -1,5 +1,5 @@
 Dealerships, Swaps, DealerData, fn = {}, {}, {}, {}
-Kora.print.debug('kora_dealership server/functions.lua loaded.')
+Kora.logging.debug('boot.functions_loaded', 'server/functions.lua loaded')
 
 local publicStock = 9999
 local maxSalesLog = 500
@@ -20,7 +20,7 @@ function fn.withDealerWrite(dealer, action, ...)
     local ok, result, message = pcall(action, ...)
     writing[dealer] = nil
     if not ok then
-        print(('[kora_dealership] write failed for %s: %s'):format(dealer, tostring(result)))
+        Kora.logging.error('dealer.write_failed', 'Dealer write failed', { dealer = dealer, error = tostring(result) })
         return fn.fail(Kora.lang('s.errors.save_failed'))
     end
     return result, message
@@ -34,7 +34,7 @@ end
 
 function fn.flagSettlement(dealer, detail)
     uncertain[dealer] = true
-    print(('[kora_dealership] settlement needs review for %s; writes paused until restart: %s'):format(dealer, detail))
+    Kora.logging.error('dealer.settlement_needs_review', 'Settlement needs review; writes are paused until restart', { dealer = dealer, detail = tostring(detail) })
 end
 
 function fn.commitSaleWrites(dealer, statements)
@@ -306,7 +306,7 @@ function fn.deliverVehicle(target, model, spawn, commit, expectedCid)
         local saved, reason = commit({ ownershipWrite(target, model, plate, Config.offerVehicleState) })
         if not saved then return nil, reason end
         local emitted, err = pcall(TriggerEvent, 'qb-vehicleshop:server:onVehiclePurchased', target, model, plate)
-        if not emitted then print(('[kora_dealership] purchase event failed for %s: %s'):format(plate, tostring(err))) end
+        if not emitted then Kora.logging.error('sale.purchase_event_failed', 'Purchase event handler failed', { plate = plate, error = tostring(err) }) end
         return true
     end
 
@@ -333,10 +333,10 @@ function fn.deliverVehicle(target, model, spawn, commit, expectedCid)
         return exports.kora_vehiclekeys:giveKeys(target, plate)
     end)
     if not keyed or granted == false then
-        print(('[kora_dealership] could not grant keys for purchased vehicle %s'):format(plate))
+        Kora.logging.warn('sale.grant_keys_failed', 'Could not grant keys for a purchased vehicle', { plate = plate })
     end
     local emitted, err = pcall(TriggerEvent, 'qb-vehicleshop:server:onVehiclePurchased', cid, model, plate)
-    if not emitted then print(('[kora_dealership] purchase event failed for %s: %s'):format(plate, tostring(err))) end
+    if not emitted then Kora.logging.error('sale.purchase_event_failed', 'Purchase event handler failed', { plate = plate, error = tostring(err) }) end
     pcall(function()
         if fn.citizenId(target) == cid then TaskWarpPedIntoVehicle(GetPlayerPed(target), vehicle, -1) end
     end)
@@ -363,7 +363,7 @@ function fn.deliverSale(dealer, target, model, spawn, statements, stock, managem
         fn.flagSettlement(dealer, tostring(result))
         return nil, 'indeterminate'
     end
-    print(('[kora_dealership] delivery failed for %s: %s'):format(dealer, tostring(result)))
+    Kora.logging.error('sale.delivery_failed', 'Vehicle delivery failed', { dealer = dealer, error = tostring(result) })
     return nil
 end
 
@@ -762,24 +762,23 @@ end
 
 CreateThread(function()
     if not Kora.sql.ready(60000) then
-        print('^1[kora_dealership]^7 kora_sql was unavailable; dealerships are not loaded until restart.')
+        Kora.logging.error('schema.sql_unavailable', 'kora_sql was unavailable; dealerships are not loaded until restart')
         return
     end
     if not Config.UsePDM then KoraDealershipSchema[1].seed = nil end
     local reports, schemaErr = Kora.sql.ensureTables(KoraDealershipSchema)
     if schemaErr then
-        print(('^1[kora_dealership]^7 schema failed: %s'):format(tostring(schemaErr)))
+        Kora.logging.error('schema.setup_failed', 'Dealership schema setup failed', { error = tostring(schemaErr) })
         return
     end
     for _, report in ipairs(reports or {}) do
         for _, warning in ipairs(report.warnings or {}) do
-            print(('^3[kora_dealership]^7 %s: %s'):format(tostring(report.table), tostring(warning)))
+            Kora.logging.warn('schema.table_warning', 'Schema reported a warning for a table', { table = tostring(report.table), warning = tostring(warning) })
         end
     end
     local tablesReady, tablesErr = Kora.sql.awaitTables({ 'players', 'player_vehicles' }, 60000)
     if not tablesReady then
-        print(('^1[kora_dealership]^7 player tables unavailable; dealerships are not loaded until restart: %s')
-            :format(tostring(tablesErr)))
+        Kora.logging.error('schema.player_tables_unavailable', 'Player tables unavailable; dealerships are not loaded until restart', { error = tostring(tablesErr) })
         return
     end
     load()

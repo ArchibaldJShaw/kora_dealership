@@ -8,3 +8,4 @@ cd "$root"
 "${LUA:-lua}" test/schema.lua
 "${LUA:-lua}" test/showroom.lua
 "${LUA:-lua}" test/test_drive.lua
+"${LUA:-lua}" test/no_raw_print.lua
